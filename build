@@ -1,0 +1,14 @@
+#!/bin/bash
+
+set -e
+
+sed -e "s/%%OPENJDK_VERSION%%/$OPENJDK_VERSION/" \
+    -e "s/%%GDAL_VERSION%%/$GDAL_VERSION/" \
+    -e "s/%%LIBPROJ_VERSION%%/$LIBPROJ_VERSION/" \
+    -e "s/%%SPARK_VERSION%%/$SPARK_VERSION/" \
+    -e "s/%%CORES%%/$CORES/" "Dockerfile.template" > Dockerfile
+
+GDAL_V=$(echo "${GDAL_VERSION}" | cut -d "." -f 1,2)
+SPARK_V=$(echo "${SPARK_VERSION}" | cut -d "." -f 1,2)
+
+docker build -t "mosaic-dev:jdk$OPENJDK_VERSION-gdal$GDAL_V-spark$SPARK_V" .
