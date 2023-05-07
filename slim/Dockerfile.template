@@ -10,11 +10,12 @@ ENV CORES %%CORES%%
 WORKDIR $ROOTDIR/
 RUN mkdir -p $ROOTDIR/src
 
-RUN wget -qO- https://download.osgeo.org/gdal/${GDAL_VERSION}/gdal-${GDAL_VERSION}.tar.gz | \
-    tar -xzC $ROOTDIR/src/
+# Downloading these takes time, use locally downloaded version
+COPY ./gdal-${GDAL_VERSION}.tar.gz .
+RUN tar -xf ./gdal-${GDAL_VERSION}.tar.gz -C $ROOTDIR/src/
 
-RUN wget -qO- https://download.osgeo.org/proj/proj-${LIBPROJ_VERSION}.tar.gz | \
-    tar -xzC $ROOTDIR/src/
+COPY ./proj-${LIBPROJ_VERSION}.tar.gz .
+RUN tar -xf proj-${LIBPROJ_VERSION}.tar.gz -C $ROOTDIR/src/
 
 # Install dependencies
 RUN set -ex \

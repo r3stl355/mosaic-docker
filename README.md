@@ -18,7 +18,9 @@ An additional benefit of using this Docker image is ability to debug Scala code 
 
 ### Template variables
 
-* `GDAL_VERSION` - Version number for GDAL installation (latest tested with: `3.4.0`)
+*These library versions were tested with the version 0.3.10 of Mosaic, and may neeed to be changed for other versions.*
+
+* `GDAL_VERSION` - Version number for GDAL installation (latest tested with: `3.4.3`)
 * `OPENJDK_VERSION`- Base container image JDK version (latest tested with: `8`)
 * `LIBRPOJ_VERSION` - Version number for Proj4 installation (latest tested with: `7.1.0`)
 * `SPARK_VERSION` - Version number for Spark installation (latest tested with: `3.2.1`)
@@ -30,7 +32,7 @@ An additional benefit of using this Docker image is ability to debug Scala code 
 *Following was tested to work on MacOS (M1 and i9, it takes about 20-25 minutes to build), and may require some tweaking to work on other systems*
 
 ```
-GDAL_VERSION=3.4.0 OPENJDK_VERSION=8 LIBPROJ_VERSION=7.1.0 SPARK_VERSION=3.2.1 CORES=4 ./build
+GDAL_VERSION=3.4.3 OPENJDK_VERSION=8 LIBPROJ_VERSION=7.1.0 SPARK_VERSION=3.2.1 CORES=4 ./build
 ```
 
 
@@ -41,7 +43,7 @@ GDAL_VERSION=3.4.0 OPENJDK_VERSION=8 LIBPROJ_VERSION=7.1.0 SPARK_VERSION=3.2.1 C
 2. Run the following (this will mount the current directory to `/root/mosaic` in the container so it is important that it's executed in the directory containing Mosaic code)
 
 ```
-docker run --name mosaic-dev --rm -p 5005:5005 -v $PWD:/root/mosaic -e JAVA_TOOL_OPTIONS="-agentlib:jdwp=transport=dt_socket,address=5005,server=y,suspend=n" -it mosaic-dev:jdk8-gdal3.4-spark3.2 /bin/bash
+docker run --name mosaic-dev --rm -p 5005:5005 -v $PWD:/root/mosaic -e JAVA_TOOL_OPTIONS="-agentlib:jdwp=transport=dt_socket,address=5005,server=y,suspend=n" -it mosaic-dev:jdk8-gdal3.4.3-spark3.2 /bin/bash
 ```
 
 3. In the container prompt, run the following to build and run some Python code (e.g. one of the tests)
@@ -82,7 +84,7 @@ To run Python code from a Jupyter Notebook (handy because it also allows geometr
 
 1. Start the container with an additional port mapping
 ```
-docker run --name mosaic-dev --rm -p 5005:5005 -p 8888:8888 -v $PWD:/root/mosaic -e JAVA_TOOL_OPTIONS="-agentlib:jdwp=transport=dt_socket,address=5005,server=y,suspend=n" -it mosaic-dev:jdk8-gdal3.4-spark3.2 /bin/bash
+docker run --name mosaic-dev --rm -p 5005:5005 -p 8888:8888 -v $PWD:/root/mosaic -e JAVA_TOOL_OPTIONS="-agentlib:jdwp=transport=dt_socket,address=5005,server=y,suspend=n" -it mosaic-dev:jdk8-gdal3.4.3-spark3.2 /bin/bash
 ```
 
 2. In the container prompt, start the notebook server
@@ -105,7 +107,7 @@ jupyter notebook --ip 0.0.0.0 --no-browser --allow-root
 
 I noticed that at times downloading the libraries from the sources during the build takes long time, which can be a bit annoying if the build is run repeatedly. To counter that, I have pre-downloaded the libraries instead of downloading directly from the source every time. 
 
-To achieve the same, all you need to do download the libraries locall and replace
+To achieve the same, all you need to do download the libraries locally (to the same directory as this repo code), replace the following in the `Dockerfile.template` 
 ```
 RUN wget -qO- https://download.osgeo.org/gdal/${GDAL_VERSION}/gdal-${GDAL_VERSION}.tar.gz | \
     tar -xzC $ROOTDIR/src/
@@ -113,14 +115,17 @@ RUN wget -qO- https://download.osgeo.org/gdal/${GDAL_VERSION}/gdal-${GDAL_VERSIO
 RUN wget -qO- https://download.osgeo.org/proj/proj-${LIBPROJ_VERSION}.tar.gz | \
     tar -xzC $ROOTDIR/src/
 ```
-
-in the `Dockerfile.template` with
+ with
 
 ```
 # Downloading these takes time, use locally downloaded version
-COPY $CUR_DIR_NAME/gdal-${GDAL_VERSION}.tar.gz .
+COPY ./gdal-${GDAL_VERSION}.tar.gz .
 RUN tar -xf ./gdal-${GDAL_VERSION}.tar.gz -C $ROOTDIR/src/
 
-COPY $CUR_DIR_NAME/proj-${LIBPROJ_VERSION}.tar.gz .
+COPY ./proj-${LIBPROJ_VERSION}.tar.gz .
 RUN tar -xf proj-${LIBPROJ_VERSION}.tar.gz -C $ROOTDIR/src/
 ```
+
+and re-build the image.
+
+I added this version under the `slim` folder here, but without the libraries - those still need to be downloaded from the source.
