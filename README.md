@@ -36,7 +36,7 @@ GDAL_VERSION=3.4.3 OPENJDK_VERSION=8 LIBPROJ_VERSION=7.1.0 SPARK_VERSION=3.2.1 C
 ```
 
 
-### Test
+### Run
 
 1. Open a Terminal window ***in the directory containing the Mosaic code*** (or use a Terminal tool in the IntelliJ)
 
@@ -46,7 +46,7 @@ GDAL_VERSION=3.4.3 OPENJDK_VERSION=8 LIBPROJ_VERSION=7.1.0 SPARK_VERSION=3.2.1 C
 docker run --name mosaic-dev --rm -p 5005:5005 -v $PWD:/root/mosaic -e JAVA_TOOL_OPTIONS="-agentlib:jdwp=transport=dt_socket,address=5005,server=y,suspend=n" -it mosaic-dev:jdk8-gdal3.4.3-spark3.2 /bin/bash
 ```
 
-3. In the container prompt, run the following to build and run some Python code (e.g. one of the tests)
+3. In the container prompt, run the following to build and run some Python code (e.g. one of the Python tests)
 
 ```
 cd /root/mosaic
@@ -77,6 +77,19 @@ In the IntelliJ IDE (also works in the Community edition)
 
 ![IntelliJ Debug](intellij-debug.png)
 
+### Debugging Scala tests
+
+Debugging Scala tests requires passing the parameters used to set the JAVA_TOOL_OPTIONS environmental variable directly to `mvn test` command. Test execution will fail if JAVA_TOOL_OPTIONS is set as an environmental variable. Options are:
+    - run `unset JAVA_TOOL_OPTIONS` before running the test if the container was started with the `JAVA_TOOL_OPTIONS`
+    - start a new container without setting the JAVA_TOOL_OPTIONS environmental variable
+
+- To debug a specific test follow the same steps (e.g. set the breakpoint in the IntelliJ, run the test, switch to IntelliJ and hit the debug button) with an additional `-DargLine` parameter passed to `mvn test`. For example, to run the `ST_UnaryUnionTest` suite:
+
+```
+cd /root/mosaic
+
+mvn test -DwildcardSuites=com.databricks.labs.mosaic.expressions.geometry.ST_UnaryUnionTest -DargLine=-agentlib:jdwp=transport=dt_socket,address=5005,server=y,suspend=n
+```
 
 ### Using Jupyter Notebook
 
@@ -129,3 +142,44 @@ RUN tar -xf proj-${LIBPROJ_VERSION}.tar.gz -C $ROOTDIR/src/
 and re-build the image.
 
 I added this version under the `slim` folder here, but without the libraries - those still need to be downloaded from the source.
+
+## Other versions to match specific Databricks Runtime
+
+*More info on specific releases can be found [here](https://docs.databricks.com/release-notes/runtime/releases.html)*
+
+### DBR 13.x
+    
+Following changes are required to Mosaic code in order to run it in this image
+
+1. To be able to compile, change `file.filePath` to `file.filePath.toString()` in the following files:
+    - `src/main/scala/com/databricks/labs/mosaic/datasource/GDALFileFormat.scala`
+    - `src/main/scala/com/databricks/labs/mosaic/datasource/OGRFileFormat.scala`
+    - `src/main/scala/com/databricks/labs/mosaic/datasource/ShapefileFileFormat.scala`
+
+2. Some tests are failing because imlicit Codec is no longer getting picked up in some places
+    - add `import scala.io.Codec._` to `com.databricks.labs.mosaic.core.crs.CRSBoundsProvider`
+    - add a second parameter to `fromInputStream`, i.e. `scala.io.Source.fromInputStream(stream)(UTF8)`
+
+3. Test `com.databricks.labs.mosaic.models.knn.SpatialKNNTest` is failing because `Empty2Null` class is no longer part of `spark-sql` 3.4, but latest `delta-core` library is still compiled against `spark-sql` 3.3
+    - comment out the test until the new `delta-core` using `spark-sql` 3.4 is released
+
+
+- Build
+
+```
+cd ubuntu-22-spark-3.4
+
+GDAL_VERSION=3.4.3 LIBPROJ_VERSION=7.1.0 SPARK_VERSION=3.4.0 CORES=4 ./build
+```
+
+- Use - an example running a debuggable Scala test
+```
+docker run --name mosaic-dev-3.4 --rm -p 5005:5005 -p 8888:8888 -v $PWD:/root/mosaic -it mosaic-dev:ubuntu22-gdal3.4.3-spark3.4.0 /bin/bash
+```
+
+- and in the container prompt
+```
+cd /root/mosaic
+
+mvn test -DwildcardSuites=com.databricks.labs.mosaic.expressions.geometry.ST_UnaryUnionTest -DargLine=-agentlib:jdwp=transport=dt_socket,address=5005,server=y,suspend=n
+```

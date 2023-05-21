@@ -1,0 +1,10 @@
+#!/bin/bash
+
+set -e
+
+sed -e "s/%%GDAL_VERSION%%/$GDAL_VERSION/" \
+    -e "s/%%LIBPROJ_VERSION%%/$LIBPROJ_VERSION/" \
+    -e "s/%%SPARK_VERSION%%/$SPARK_VERSION/" \
+    -e "s/%%CORES%%/$CORES/" "Dockerfile.template" > Dockerfile
+
+docker build -t "mosaic-dev:ubuntu22-gdal$GDAL_VERSION-spark$SPARK_VERSION" .
