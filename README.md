@@ -41,16 +41,17 @@ GDAL_VERSION=3.4.3 OPENJDK_VERSION=8 LIBPROJ_VERSION=7.1.0 SPARK_VERSION=3.2.1 C
 1. Open a Terminal window ***in the directory containing the Mosaic code*** (or use a Terminal tool in the IntelliJ)
 
 2. Run the following (this will mount the current directory to `/root/mosaic` in the container so it is important that it's executed in the directory containing Mosaic code)
+    - you can also run this command without the `--rm` option which would allow subsequent runs with just `docker start mosaic-dev -i`, with an additional benefit of re-using previous `npm` built as weel as `npm` and `pip` cached libraries
 
 ```
 docker run --name mosaic-dev --rm -p 5005:5005 -v $PWD:/root/mosaic -e JAVA_TOOL_OPTIONS="-agentlib:jdwp=transport=dt_socket,address=5005,server=y,suspend=n" -it mosaic-dev:jdk8-gdal3.4.3-spark3.2 /bin/bash
 ```
 
 3. In the container prompt, run the following to build and run some Python code (e.g. one of the Python tests)
-
+    - you may consider disabling/removing test coverate plugin in `pom.xml` prior to running `mvn package` as it takes some time to run all tests (at least 30 minutes on my i9 MacBook)
 ```
 cd /root/mosaic
-mvn clean package -DskipTests
+mvn clean package -DskipTests=true
 
 cd python
 pip install .
@@ -183,3 +184,4 @@ cd /root/mosaic
 
 mvn test -DwildcardSuites=com.databricks.labs.mosaic.expressions.geometry.ST_UnaryUnionTest -DargLine=-agentlib:jdwp=transport=dt_socket,address=5005,server=y,suspend=n
 ```
+
