@@ -3,3 +3,4 @@
 Dockerfile
 
 *.tar.gz
+.idea
